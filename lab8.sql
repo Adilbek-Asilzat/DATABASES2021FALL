@@ -64,16 +64,17 @@ SELECT valid_pass('12345678');
 
 -- e. Returns two outputs, but has one input.
 CREATE OR REPLACE FUNCTION calculate(
-a NUMERIC,
-OUT plus NUMERIC,
-OUT minus NUMERIC)
-AS $$
+    a NUMERIC,
+    OUT plus NUMERIC,
+    OUT minus NUMERIC)
+AS
+$$
 BEGIN
-plus := a + 1;
-minus := a - 1;
+    plus := a + 1;
+    minus := a - 1;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 SELECT *
 FROM calculate(1);
@@ -105,151 +106,173 @@ CREATE TABLE PERSON
     BIRTHDAY    DATE
 );
 
-CREATE OR REPLACE FUNCTION trigger_on_changes1() returns trigger AS $$
-    begin
-    	new.logtime := current_timestamp;
-        return new;
-    end;
-    $$
-language plpgsql;
+CREATE OR REPLACE FUNCTION trigger_on_changes1() returns trigger AS
+$$
+begin
+    new.logtime := current_timestamp;
+    return new;
+end;
+$$
+    language plpgsql;
 
-CREATE TRIGGER trigger_on_changes before INSERT OR UPDATE ON PERSON
-    for each row execute function trigger_on_changes1();
+CREATE TRIGGER trigger_on_changes
+    BEFORE INSERT OR UPDATE
+    ON PERSON
+    FOR EACH ROW
+execute function trigger_on_changes1();
 
-INSERT INTO PERSON VALUES('Aizhan', '2000-08-12');
+INSERT INTO PERSON
+VALUES ('Aizhan', '2000-08-12');
 
-SELECT * FROM PERSON;
+SELECT *
+FROM PERSON;
 
 -- b. Computes the age of a person when persons’ date of birth is inserted.
 CREATE OR REPLACE FUNCTION ages() returns trigger as
-    $$
-    begin
-        new.age = extract(years from age(current_date, new.BIRTHDAY ));
-        return new;
-    end;
-    $$
-language plpgsql;
+$$
+begin
+    new.age = extract(years from age(current_date, new.BIRTHDAY));
+    return new;
+end;
+$$
+    language plpgsql;
 
-CREATE TRIGGER compute_age before INSERT ON
-    PERSON for each row execute procedure ages();
+CREATE TRIGGER compute_age
+    before INSERT
+    ON
+        PERSON
+    for each row
+execute procedure ages();
 
-INSERT INTO PERSON VALUES ('Asyl', '2002-08-30');
+INSERT INTO PERSON
+VALUES ('Asyl', '2002-08-30');
 
-SELECT * FROM PERSON;
+SELECT *
+FROM PERSON;
 
 -- c. Adds 12% tax on the price of the inserted item.
-CREATE TABLE prod(
-  price int not null,
-  with_tax double precision
+CREATE TABLE prod
+(
+    price    int not null,
+    with_tax double precision
 );
 
 CREATE FUNCTION tax_calc() returns trigger as
-    $$
-        begin
-            new.with_tax = new.price * 1.12;
-            return new;
-        end;
-    $$
-language plpgsql;
+$$
+begin
+    new.with_tax = new.price * 1.12;
+    return new;
+end;
+$$
+    language plpgsql;
 
-CREATE TRIGGER taxes before INSERT ON prod
-	for each row execute procedure tax_calc();
+CREATE TRIGGER taxes
+    before INSERT
+    ON prod
+    for each row
+execute procedure tax_calc();
 
-INSERT INTO prod(price) values (500);
+INSERT INTO prod(price)
+values (500);
 
-SELECT * FROM prod;
+SELECT *
+FROM prod;
 
 -- 4.Create procedures that:
 create table employee
 (
-    id integer primary key ,
-    name varchar,
-    date_of_birth date,
-    age integer,
-    salary integer,
+    id              integer primary key,
+    name            varchar,
+    date_of_birth   date,
+    age             integer,
+    salary          integer,
     work_experience integer,
-    discount integer
+    discount        integer
 );
 -- a) Increases salary by 10% for every 2 years of work experience and provides
 -- 10% discount and after 5 years adds 1% to the discount.
 
 CREATE OR REPLACE PROCEDURE salary1() AS
-    $$
-        begin
-            UPDATE employee
-            SET salary = salary * (work_experience/2)*1.1,
-            discount = 10
-            WHERE work_experience >= 2;
+$$
+BEGIN
+    UPDATE employee
+    SET salary   = salary * (work_experience / 2) * 1.1,
+        discount = 10
+    WHERE work_experience >= 2;
 
-            UPDATE employee
-            SET discount = discount + (work_experience / 5)
-            WHERE work_experience >= 5;
-            COMMIT;
-        end;
-    $$
-language plpgsql;
+    UPDATE employee
+    SET discount = discount + (work_experience / 5)
+    WHERE work_experience >= 5;
+    COMMIT;
+END;
+$$
+    language plpgsql;
 
-INSERT INTO employee VALUES (1,'Asyl', '2002-08-30', 19, 10000,5,0);
+INSERT INTO employee
+VALUES (1, 'Asyl', '2002-08-30', 19, 10000, 5, 0);
 
-call salary1();
+CALL salary1();
 
-SELECT * FROM employee;
+SELECT *
+FROM employee;
 
 -- b) After reaching 40 years, increase salary by 15%. If work experience is more
 -- than 8 years, increase salary for 15% of the already increased value for work
 -- experience and provide a constant 20% discount.
 
 CREATE OR REPLACE PROCEDURE increase_salary() AS
-    $$
-        begin
-            UPDATE employee
-            SET salary = salary * 1.15
-            WHERE age >= 40;
+$$
+BEGIN
+    UPDATE employee
+    SET salary = salary * 1.15
+    WHERE age >= 40;
 
-            UPDATE employee
-            SET
-            salary = salary * 1.15,
-            discount = 20
-            WHERE age >= 40 and work_experience >= 8;
-            COMMIT ;
-        end;
-    $$
-language plpgsql;
+    UPDATE employee
+    SET salary   = salary * 1.15,
+        discount = 20
+    WHERE age >= 40
+      AND work_experience >= 8;
+    COMMIT;
+END;
+$$
+    language plpgsql;
 
-INSERT INTO employee VALUES ( 2, 'Aliya', '2001-10-24', 20, 200000, 7,0);
+INSERT INTO employee
+VALUES (2, 'Aliya', '2001-10-24', 20, 200000, 7, 0);
 
 call increase_salary();
 
-SELECT * FROM employee;
+SELECT *
+FROM employee;
 
 -- 5.Produce a CTE that can return the upward recommendation chain for any member.
 CREATE TABLE cd.members
 (
-    memid integer NOT NULL,
-    surname character varying(200) NOT NULL,
-    firstname character varying(200) NOT NULL,
-    address character varying(300) NOT NULL,
-    zipcode integer NOT NULL,
-    telephone character varying(20) NOT NULL,
+    memid         integer                NOT NULL,
+    surname       character varying(200) NOT NULL,
+    firstname     character varying(200) NOT NULL,
+    address       character varying(300) NOT NULL,
+    zipcode       integer                NOT NULL,
+    telephone     character varying(20)  NOT NULL,
     recommendedby integer,
-    joindate timestamp not null
+    joindate      timestamp              not null
 );
 
 CREATE TABLE cd.facilities
 (
-    facid integer NOT NULL,
-    name character varying(100) NOT NULL,
-    membercost numeric NOT NULL,
-    guestcost numeric NOT NULL,
-    initialoutlay numeric NOT NULL,
-    monthlymaintenance numeric NOT NULL
+    facid              integer                NOT NULL,
+    name               character varying(100) NOT NULL,
+    membercost         numeric                NOT NULL,
+    guestcost          numeric                NOT NULL,
+    initialoutlay      numeric                NOT NULL,
+    monthlymaintenance numeric                NOT NULL
 );
 
 CREATE TABLE cd.bookings
 (
-    bookid integer NOT NULL,
-    facid integer NOT NULL,
-    memid integer NOT NULL,
+    bookid    integer   NOT NULL,
+    facid     integer   NOT NULL,
+    memid     integer   NOT NULL,
     starttime timestamp NOT NULL,
-    slots integer NOT NULL
+    slots     integer   NOT NULL
 );
